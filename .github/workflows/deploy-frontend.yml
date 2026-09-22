@@ -28,11 +28,11 @@ jobs:
         working-directory: frontend
       - run: test -n "$VITE_API_URL"
         env:
-          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://assembly-treasurer-operator-movers.trycloudflare.com' }}
+          VITE_API_URL: ${{ vars.VITE_API_URL || vars.APIURL || 'https://assembly-treasurer-operator-movers.trycloudflare.com' }}
       - run: npm run build
         working-directory: frontend
         env:
-          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://assembly-treasurer-operator-movers.trycloudflare.com' }}
+          VITE_API_URL: ${{ vars.VITE_API_URL || vars.APIURL || 'https://assembly-treasurer-operator-movers.trycloudflare.com' }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
