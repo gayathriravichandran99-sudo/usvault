@@ -1,0 +1,10 @@
+{
+  "name": "usvault-mvp",
+  "private": true,
+  "scripts": {
+    "api:install": "npm --prefix backend install",
+    "web:install": "npm --prefix frontend install",
+    "api:build": "npm --prefix backend run build",
+    "web:build": "npm --prefix frontend run build"
+  }
+}

@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String      @id @default(cuid())
+  email      String      @unique
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  vaultsA    Vault[]     @relation("memberA")
+  vaultsB    Vault[]     @relation("memberB")
+  otps       Otp[]
+  deviceKeys DeviceKey[]
+}
+
+model Vault {
+  id          String            @id @default(cuid())
+  name        String            @default("Our Vault")
+  memberAId   String
+  memberBId   String
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  memberA     User              @relation("memberA", fields: [memberAId], references: [id])
+  memberB     User              @relation("memberB", fields: [memberBId], references: [id])
+  folders     Folder[]
+  images      Image[]
+  deviceKeys  DeviceKey[]
+  envelopes   VaultKeyEnvelope[]
+
+  @@index([memberAId])
+  @@index([memberBId])
+}
+
+model Folder {
+  id        String   @id @default(cuid())
+  vaultId   String
+  parentId  String?
+  name      String
+  createdAt DateTime @default(now())
+
+  vault     Vault    @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  parent    Folder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Folder[] @relation("FolderTree")
+  images    Image[]
+
+  @@index([vaultId])
+  @@index([parentId])
+}
+
+model Image {
+  id           String   @id @default(cuid())
+  vaultId      String
+  folderId     String?
+  originalName String
+  mimeType     String
+  size         Int
+  storageKey   String   @unique
+  keyVersion   Int      @default(1)
+  createdAt    DateTime @default(now())
+
+  vault        Vault    @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  folder       Folder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  @@index([vaultId, createdAt])
+  @@index([folderId])
+}
+
+model Otp {
+  id        String    @id @default(cuid())
+  userId    String
+  codeHash  String
+  purpose   String
+  expiresAt DateTime
+  consumedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose, expiresAt])
+}
+
+model DeviceKey {
+  id                    String   @id @default(cuid())
+  vaultId               String
+  userId                String
+  publicKeyJwk          Json
+  signingPublicKeyJwk   Json
+  label                 String?
+  createdAt             DateTime @default(now())
+  revokedAt             DateTime?
+
+  vault                 Vault   @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  envelopes             VaultKeyEnvelope[]
+
+  @@index([vaultId, userId])
+}
+
+model VaultKeyEnvelope {
+  id              String   @id @default(cuid())
+  vaultId         String
+  userId          String
+  deviceKeyId     String
+  wrappedVaultKey String
+  version         Int
+  createdAt       DateTime @default(now())
+
+  vault           Vault     @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  deviceKey       DeviceKey @relation(fields: [deviceKeyId], references: [id], onDelete: Cascade)
+
+  @@unique([vaultId, deviceKeyId, version])
+  @@index([vaultId, userId])
+}
