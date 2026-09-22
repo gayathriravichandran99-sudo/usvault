@@ -117,9 +117,9 @@ await redis.set(`login-device-challenge:${activeUser.id}:${deviceChallenge}`,"1"
 const token=crypto.randomBytes(32).toString("base64url");
 // Device registration happens immediately after login; session is temporarily bound to a login token.
 await redis.set(`pending-session:${token}`,JSON.stringify({vaultId:v.id,userId:activeUser.id}),"EX",300);
-res.cookie(sessionCookie,token,{httpOnly:true,secure:env.NODE_ENV==="production",sameSite:"lax",maxAge:5*60*1000,path:"/"});
+res.cookie(sessionCookie,token,{httpOnly:true,secure:env.NODE_ENV==="production",sameSite:env.NODE_ENV==="production"?"none":"lax",maxAge:5*60*1000,path:"/"});
 res.json({ok:true,vaultId:v.id,userId:activeUser.id,memberAId:v.memberAId,memberBId:v.memberBId});}catch(e){res.status(400).json({error:"Unable to verify pair."})}});
-app.post("/auth/logout",async(req,res)=>{const token=req.cookies[sessionCookie];if(token){await redis.del(`session:${token}`,`pending-session:${token}`)}res.clearCookie(sessionCookie,{httpOnly:true,secure:env.NODE_ENV==="production",sameSite:"lax",path:"/"});res.status(204).end()});
+app.post("/auth/logout",async(req,res)=>{const token=req.cookies[sessionCookie];if(token){await redis.del(`session:${token}`,`pending-session:${token}`)}res.clearCookie(sessionCookie,{httpOnly:true,secure:env.NODE_ENV==="production",sameSite:env.NODE_ENV==="production"?"none":"lax",path:"/"});res.status(204).end()});
 app.get("/vault",requireSession,async(req,res)=>{const s=req.session!;const v=await prisma.vault.findUnique({where:{id:s.vaultId},include:{folders:true,images:{select:{id:true,folderId:true,originalName:true,mimeType:true,size:true,keyVersion:true,createdAt:true}}}});if(!v)return res.status(404).json({error:"Vault not found"});const devices=await prisma.deviceKey.findMany({where:{vaultId:v.id,revokedAt:null},select:{id:true,userId:true,publicKeyJwk:true,label:true,createdAt:true}});const envelopes=await prisma.vaultKeyEnvelope.findMany({where:{vaultId:v.id},select:{id:true,userId:true,deviceKeyId:true,wrappedVaultKey:true,version:true}}).catch(()=>[] as any[]);res.json({...v,currentUserId:s.userId,devices,envelopes})});
 app.post("/crypto/device-key/challenge",async(req,res)=>{
   const token=req.cookies[sessionCookie]; const pending=token?await redis.get(`pending-session:${token}`):null;
@@ -147,7 +147,7 @@ app.post("/crypto/device-key",async(req,res)=>{
   await redis.del(`pending-session:${token}`);
   const sessionToken=crypto.randomBytes(32).toString("base64url");
   await redis.set(`session:${sessionToken}`,JSON.stringify({vaultId:p.vaultId,userId:p.userId,deviceKeyId:d.id}),"EX",SESSION_TTL_SECONDS);
-  res.cookie(sessionCookie,sessionToken,{httpOnly:true,secure:env.NODE_ENV==="production",sameSite:"lax",maxAge:SESSION_TTL_SECONDS*1000,path:"/"});
+  res.cookie(sessionCookie,sessionToken,{httpOnly:true,secure:env.NODE_ENV==="production",sameSite:env.NODE_ENV==="production"?"none":"lax",maxAge:SESSION_TTL_SECONDS*1000,path:"/"});
   res.json({id:d.id});
  }catch{res.status(400).json({error:"Invalid device key"})}
 });

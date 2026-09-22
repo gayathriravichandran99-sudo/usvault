@@ -1,4 +1,4 @@
-const API = import.meta.env.VITE_API_URL;
+const API = import.meta.env.VITE_API_URL?.replace(/\/$/, "");
 if (!API) throw new Error("VITE_API_URL is required");
 async function request(path:string, init?:RequestInit){const r=await fetch(`${API}${path}`,{...init,credentials:"include"});const d=r.status===204?null:await r.json().catch(()=>null);if(!r.ok)throw new Error(d?.error||"Request failed");return d}
 export const api={
