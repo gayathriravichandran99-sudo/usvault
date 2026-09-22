@@ -34,6 +34,8 @@ npm run dev
 
 For local login, OTPs are sent by Resend. Local uploads are stored under `backend/storage/`. They are still **client-encrypted ciphertext**; the local storage provider is only for development.
 
+The Resend API key is a backend-only secret configured by the app owner. End users provide email addresses only; they never provide a Resend key. Resend testing mode can deliver only to the account email, so verify a sending domain before testing two arbitrary recipient addresses.
+
 For production, switch `STORAGE_PROVIDER=s3`, configure Resend, then use managed PostgreSQL/Redis and a private S3 bucket. See `CLOUD_SETUP.md`.
 
 ## The trust promise

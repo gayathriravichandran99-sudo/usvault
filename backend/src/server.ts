@@ -68,7 +68,8 @@ async function sendOtp(to:string,code:string){
   console.log(`[OTP] sending verification code to ${to}`);
   const response=await fetch("https://api.resend.com/emails",{method:"POST",headers:{Authorization:`Bearer ${env.RESEND_API_KEY}`,"Content-Type":"application/json"},body:JSON.stringify({from:env.RESEND_FROM_EMAIL,to:[to],subject,text})});
   if(!response.ok){
-    const error=new Error(`Resend rejected email for ${to}: ${response.status}`) as Error & {providerStatus?:number};
+    const details=await response.json().catch(()=>null) as {message?:string}|null;
+    const error=new Error(details?.message||`Resend rejected email: ${response.status}`) as Error & {providerStatus?:number};
     error.providerStatus=response.status;
     throw error;
   }
@@ -105,7 +106,8 @@ app.post("/auth/request-otp",async(req,res)=>{
   if(error?.msBeforeNext!==undefined) return res.status(429).json({error:"Too many OTP requests for this email. Try again later."});
   if(error?.name==="ZodError") return res.status(400).json({error:"Enter a valid email address."});
   console.error("OTP delivery failed",error);
-  if(error?.providerStatus===403) return res.status(502).json({error:"Resend testing mode only sends to its own account email. Verify a sending domain and use that domain in RESEND_FROM_EMAIL."});
+  if(error?.providerStatus===401) return res.status(502).json({error:"The server's Resend API key is invalid. Replace RESEND_API_KEY in the backend environment."});
+  if(error?.providerStatus===403) return res.status(502).json({error:"Resend testing mode only sends to the Resend account email. Verify a sending domain and set RESEND_FROM_EMAIL to that domain for recipient emails."});
   res.status(502).json({error:"OTP email could not be delivered. Check the email address and try again."});
  }
 });
