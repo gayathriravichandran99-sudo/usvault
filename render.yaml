@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: usvault-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "8080"
+      - key: FRONTEND_ORIGIN
+        value: https://gayathriravichandran99-sudo.github.io
+      - key: STORAGE_PROVIDER
+        value: s3
+      - key: AWS_REGION
+        sync: false
+      - key: AWS_S3_BUCKET
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false
+      - key: OTP_EXPIRES_MINUTES
+        value: "10"
+      - key: MAX_UPLOAD_MB
+        value: "50"

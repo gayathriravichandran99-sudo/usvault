@@ -21,6 +21,12 @@ Place the API behind an HTTPS load balancer/WAF. Allow traffic only from the fro
 
 The application also checks the `Origin` header on state-changing requests. Do not disable that protection when adding a reverse proxy.
 
+## Render quick start
+
+The repository includes `render.yaml` for the API. Create managed PostgreSQL and Redis resources with TLS, then create a Render Blueprint from this repository. Enter the generated values for `DATABASE_URL`, `REDIS_URL`, `AWS_REGION`, `AWS_S3_BUCKET`, `RESEND_API_KEY`, and `RESEND_FROM_EMAIL`.
+
+After the API deploys, copy its HTTPS URL into the GitHub repository variable `VITE_API_URL`. The Pages workflow will then build the frontend with the correct API origin.
+
 ## AWS
 
 S3:
