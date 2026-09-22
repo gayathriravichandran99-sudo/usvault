@@ -26,6 +26,9 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
         working-directory: frontend
+      - run: test -n "$VITE_API_URL"
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
       - run: npm run build
         working-directory: frontend
         env:
