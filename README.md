@@ -32,39 +32,32 @@ npm install
 npm run dev
 ```
 
-For local login, OTPs are sent by Resend. Local uploads are stored under `backend/storage/`. They are still **client-encrypted ciphertext**; the local storage provider is only for development.
+OTP and vault-security emails use the backend's configured SMTP sender. Configure the `SMTP_*` settings in `backend/.env` or the server-side SMTP settings before expecting emails; without a working sender, OTPs are only logged in the API terminal and export/separation notices cannot be delivered. End users enter only their own email addresses.
 
-The Resend API key is a backend-only secret configured by the app owner. End users provide email addresses only; they never provide a Resend key. Resend testing mode can deliver only to the account email, so verify a sending domain before testing two arbitrary recipient addresses.
+Local uploads are stored under `backend/storage/`. The provider stores browser-encrypted photo bytes, but does not add AWS KMS encryption at rest. For production, switch `STORAGE_PROVIDER=s3`, configure SMTP delivery, and use managed database/storage services. See `CLOUD_SETUP.md`.
 
-For production, switch `STORAGE_PROVIDER=s3`, configure Resend, then use managed PostgreSQL/Redis and a private S3 bucket. See `CLOUD_SETUP.md`.
+## Current privacy model
 
-## The trust promise
-
-**Your photos are encrypted before they leave your device. UsVault's servers store ciphertext, not photo plaintext.**
-
-Our architecture is designed so the service does not possess the plaintext vault key needed to decrypt your photos. That is the core of the UsVault privacy model.
+Photo bytes are encrypted in the browser with AES-256-GCM before upload, and the API stores ciphertext. **This MVP does not yet provide a strong, independently verified end-to-end encryption guarantee.** Its current vault key is derived from both partners' email addresses and the vault ID; those values are not secret, and the current application must not claim that UsVault is technically unable to derive the key.
 
 ## Security model
 
 - Photos are encrypted in the browser with AES-256-GCM before upload.
 - The API receives only ciphertext.
-- S3 stores ciphertext only and is private; S3 also uses AWS KMS server-side encryption as a second at-rest layer.
-- The vault AES key is never sent to the API in plaintext.
-- Each browser/device creates a 3072-bit RSA-OAEP key pair using Web Crypto.
-- The private key stays in IndexedDB and is non-exportable.
-- The vault key is wrapped separately for each registered device using RSA-OAEP.
-- The server stores only the public device keys and encrypted vault-key envelopes.
-- Both partner OTPs are required before a session is issued.
+- When configured, private S3 stores ciphertext and can use AWS KMS server-side encryption as an additional at-rest layer.
+- The browser derives the vault key from the two email addresses and vault ID; this is a known MVP limitation, not secure key custody.
+- Both partner email verification codes are required before a session is issued.
 - OTPs are stored as hashes and expire.
-- Redis rate limits OTP and pair-login attempts.
-- Auth is an HttpOnly, Secure, SameSite cookie in production.
-- Every vault/object operation is scoped to the authenticated vault.
+- Auth uses an HttpOnly cookie; photo and folder operations are scoped to the authenticated vault.
+- Smart categories are inferred in the browser. The classifier model may be downloaded from Google on first use; photos are not sent to an AI service for categorization.
+- In-app export controls are blocked and export attempts trigger email notices to both partners. This does not prevent screenshots, browser inspection, or copies outside the app.
+- The separation protocol freezes vault operations and requires both partners to agree on restoring access or permanently deleting stored photos. It cannot revoke plaintext or keys already copied from a browser.
 
 ## What we will and will not claim
 
 We should **not** publish “100% secure” or “unhackable” as a factual guarantee. No internet-connected service can honestly guarantee that.
 
-The stronger, accurate claim is: **“Designed so UsVault cannot decrypt your photos.”** Photos are encrypted in your browser before upload, and the server stores ciphertext.
+The accurate current claim is: **“Photos are encrypted in your browser before upload, but this MVP's key derivation is not strong enough to guarantee that the service cannot decrypt them.”**
 
 There is one important web-E2EE limitation: a compromised browser, malicious extension, compromised device, XSS vulnerability, or compromised frontend deployment could potentially access plaintext before encryption or after decryption. That is why production frontend integrity, CSP, dependency controls, secure CI/CD, monitoring and an independent security review are part of the security boundary.
 
@@ -74,7 +67,7 @@ There is one important web-E2EE limitation: a compromised browser, malicious ext
 2. Redis (Upstash, ElastiCache, etc.)
 3. Private S3 bucket
 4. AWS KMS key used by S3 for server-side encryption
-5. Amazon SES for OTP delivery
+5. A configured SMTP provider for OTP and security notices
 6. HTTPS frontend + API
 
 ## AWS S3 requirements
@@ -132,24 +125,17 @@ Set `VITE_API_URL` to the HTTPS API origin.
 
 See `SECURITY.md` for the security baseline and pre-launch checklist.
 
-## Security-hardening changes in this revision
+## Current implementation caveats
 
-- Opaque random Redis-backed sessions instead of JWTs in browser cookies.
-- Session is bound to a registered, non-revoked browser device.
-- One-time device registration challenges.
-- State-changing requests require the configured frontend Origin.
-- Stronger production HTTP security headers/CSP baseline.
-- OTP verification rate limiting in addition to OTP-send rate limiting.
-- Device limit and device revocation support.
-- Removed server-side image file-type inspection because E2EE ciphertext is intentionally opaque; the client-declared MIME type is restricted to supported image types. This is not equivalent to plaintext malware scanning.
-- Removed unused legacy per-image server encryption fields.
-- Graceful shutdown for DB/Redis.
-- Production deployment and security-header checklists.
+- Local-development sessions are persisted in `backend/storage/session_store.json` with hashed lookup keys and a seven-day expiry, so refreshing the page or restarting the API does not sign users out. Redis-backed sessions and API rate limiting are not wired into the current server; use a shared durable session store for multi-instance production deployments.
+- The current HTTP configuration disables Helmet's Content Security Policy. A production CSP and origin restrictions still need implementation and testing.
+- Device-key and vault-key-envelope helpers exist, but the current vault key is derived from partner email addresses rather than securely rotated and wrapped for each device.
+- Local storage does not add AWS KMS encryption. Configure S3 and KMS separately for that additional at-rest layer.
 
 ## Do not claim “100% secure”
 
-Use this wording on the website instead:
+For the current MVP, describe the protection accurately:
 
-> **Designed so UsVault cannot decrypt your photos.** Photos are encrypted in your browser before they leave your device. Our servers store encrypted data, not photo plaintext.
+> Photos are encrypted in your browser before upload. This early-access MVP derives its vault key partly from partner email addresses and is not suitable for highly sensitive files.
 
-Avoid “unhackable”, “100% secure”, or similar absolute guarantees. The web application still depends on the security of the user's device/browser and the integrity of the frontend code delivered to it.
+Avoid “unhackable”, “100% secure”, or claims that UsVault cannot decrypt photos until strong key management is implemented and independently reviewed. The web application also depends on the security of the user's device/browser and the integrity of the frontend code delivered to it.

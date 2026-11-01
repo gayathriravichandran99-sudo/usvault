@@ -2,6 +2,8 @@
   "name": "usvault-mvp",
   "private": true,
   "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "api:dev": "npm --prefix backend run dev",
     "api:install": "npm --prefix backend install",
     "web:install": "npm --prefix frontend install",
     "api:build": "npm --prefix backend run build",

@@ -43,13 +43,16 @@ Open the Vite URL shown in the terminal (normally http://localhost:5173).
 - Browser-side AES-256-GCM photo encryption
 - Server/storage receives ciphertext, not plaintext photo bytes
 - Per-device encrypted vault-key envelopes
-- Encrypted photo preview and download
+- Encrypted photo preview in the browser
+- On-device smart photo categories; photos are not sent to an AI service
+- Blocked in-app exports with email notices to both partners
+- A separation protocol that freezes access and requires both partners to choose restore or deletion
 - Folders and moving photos
 - Delete and logout
-- Redis-backed sessions and rate limits
+- Opaque, seven-day sessions persisted locally across page refreshes and API restarts
 - Local ciphertext storage, with an S3 production adapter
 
 ## Important MVP limitations
-This is a runnable **web MVP**, not the final production mobile release. It does not yet implement the full baseline roadmap: recovery codes, cryptographic vault-key rotation/revocation completion, encrypted metadata manifest, per-item keys/secretstream chunking, consent/quorum deletion, separation workflow, encrypted share links, mobile Flutter/Rust/Go clients, independent audit, or production infrastructure.
+This is a runnable **web MVP**, not the final production mobile release. The separation flow is a mutual freeze/restore/delete process, not cryptographic key revocation; it cannot recall files already copied or captured outside the app. The current key is derived partly from partner email addresses, which are not secret. The MVP also lacks recovery codes, complete vault-key rotation/revocation, an encrypted metadata manifest, per-item keys/secretstream chunking, encrypted share links, mobile clients, an independent audit, and production infrastructure.
 
 Do not use this MVP to store highly sensitive real-world material until those gaps are implemented and independently reviewed.
