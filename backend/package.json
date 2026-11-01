@@ -23,7 +23,7 @@
     "ioredis": "^5.7.0",
     "jose": "^6.0.12",
     "multer": "^2.0.2",
-    "prisma": "^6.15.0",
+    "prisma": "^7.10.1",
     "rate-limiter-flexible": "^7.1.0",
     "usvault-mvp": "file:..",
     "zod": "^4.0.17"
